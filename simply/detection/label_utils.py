@@ -3,14 +3,16 @@ from pathlib import Path
 
 def _requires_conversion_args(
     class_map: list[str] | None,
-    image_w: int | None,
-    image_h: int | None,
+    image_path: str | Path | None,
     direction: str,
-) -> None:
+) -> tuple[int, int]:
     if class_map is None:
         raise ValueError(f"class_map is required for {direction} conversion")
-    if image_w is None or image_h is None:
-        raise ValueError(f"image_w and image_h are required for {direction} conversion")
+    if image_path is None:
+        raise ValueError(f"image_path is required for {direction} conversion")
+    from PIL import Image
+    with Image.open(Path(image_path)) as img:
+        return img.width, img.height
 
 
 def _norm_to_pixel(
@@ -119,8 +121,7 @@ def read_label(
     fmt_in: str = "pixel",
     fmt_out: str = "pixel",
     class_map: list[str] | None = None,
-    image_w: int | None = None,
-    image_h: int | None = None,
+    image_path: str | Path | None = None,
     skip_malformed: bool = False,
 ) -> list[list]:
     """Read a detection label file and return a list of detections.
@@ -138,8 +139,8 @@ def read_label(
         fmt_out: Desired output format — "pixel" (default) or "norm".
         class_map: List of class names where index = class_id.
                    Required when converting between formats.
-        image_w: Image width in pixels. Required for format conversion.
-        image_h: Image height in pixels. Required for format conversion.
+        image_path: Path to the corresponding image file. Used to infer
+                    image dimensions. Required when converting between formats.
         skip_malformed: If True, silently skip malformed lines. If False, raises ValueError.
 
     Returns:
@@ -159,16 +160,17 @@ def read_label(
         ...     fmt_in="norm",
         ...     fmt_out="pixel",
         ...     class_map=["car", "person"],
-        ...     image_w=1920,
-        ...     image_h=1080,
+        ...     image_path="image.jpg",
         ... )
     """
     if fmt_in not in ("norm", "pixel"):
         raise ValueError(f"Invalid fmt_in '{fmt_in}', expected 'norm' or 'pixel'")
     if fmt_out not in ("norm", "pixel"):
         raise ValueError(f"Invalid fmt_out '{fmt_out}', expected 'norm' or 'pixel'")
+
+    image_w, image_h = None, None
     if fmt_in != fmt_out:
-        _requires_conversion_args(class_map, image_w, image_h, f"{fmt_in}→{fmt_out}")
+        image_w, image_h = _requires_conversion_args(class_map, image_path, f"{fmt_in}→{fmt_out}")
 
     lines = Path(file_path).read_text(encoding="utf-8").splitlines()
     detections: list[list] = []
@@ -195,8 +197,7 @@ def write_label(
     fmt_in: str = "pixel",
     fmt_out: str = "pixel",
     class_map: list[str] | None = None,
-    image_w: int | None = None,
-    image_h: int | None = None,
+    image_path: str | Path | None = None,
 ) -> None:
     """Write a list of detections to a label .txt file.
 
@@ -211,8 +212,8 @@ def write_label(
         fmt_out: Format to write on disk — "pixel" (default) or "norm".
         class_map: List of class names where index = class_id.
                    Required when converting between formats.
-        image_w: Image width in pixels. Required for format conversion.
-        image_h: Image height in pixels. Required for format conversion.
+        image_path: Path to the corresponding image file. Used to infer
+                    image dimensions. Required when converting between formats.
 
     Raises:
         ValueError: On invalid fmt values or missing conversion args.
@@ -225,16 +226,17 @@ def write_label(
         ...     fmt_in="pixel",
         ...     fmt_out="norm",
         ...     class_map=["car", "person"],
-        ...     image_w=1920,
-        ...     image_h=1080,
+        ...     image_path="image.jpg",
         ... )
     """
     if fmt_in not in ("norm", "pixel"):
         raise ValueError(f"Invalid fmt_in '{fmt_in}', expected 'norm' or 'pixel'")
     if fmt_out not in ("norm", "pixel"):
         raise ValueError(f"Invalid fmt_out '{fmt_out}', expected 'norm' or 'pixel'")
+
+    image_w, image_h = None, None
     if fmt_in != fmt_out:
-        _requires_conversion_args(class_map, image_w, image_h, f"{fmt_in}→{fmt_out}")
+        image_w, image_h = _requires_conversion_args(class_map, image_path, f"{fmt_in}→{fmt_out}")
 
     lines: list[str] = []
     for detection in detections:

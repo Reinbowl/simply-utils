@@ -3,6 +3,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from simply.detection.label_utils import _convert, read_label
+from simply.general.file_utils import mkdir
 
 FONT_PATH = Path(__file__).parent / "fonts" / "DejaVuSans.ttf"
 
@@ -130,7 +131,7 @@ def draw_bboxes(
 def viz_bboxes(
     image_path: str | Path,
     label_path: str | Path,
-    dst_path: str | Path,
+    output_path: str | Path,
     *,
     fmt_in: str = "pixel",
     class_map: list[str] | None = None,
@@ -146,7 +147,7 @@ def viz_bboxes(
     Args:
         image_path: Path to the source image file.
         label_path: Path to the detection label .txt file.
-        dst_path: Path to save the annotated image. Suffix is forced to .jpg.
+        output_path: Path to save the annotated image. Suffix is forced to .jpg.
         fmt_in: Format of the label file — "pixel" (default) or "norm".
         class_map: List of class names where index = class_id.
                    Required when fmt_in="norm".
@@ -173,15 +174,13 @@ def viz_bboxes(
         raise ValueError("class_map is required when fmt_in='norm'")
 
     img = Image.open(Path(image_path)).convert("RGB")
-    image_w, image_h = img.size
 
     detections = read_label(
         label_path,
         fmt_in=fmt_in,
         fmt_out="pixel",
         class_map=class_map,
-        image_w=image_w,
-        image_h=image_h,
+        image_path=image_path,
     )
 
     annotated = draw_bboxes(
@@ -192,6 +191,6 @@ def viz_bboxes(
         class_filter=class_filter,
     )
 
-    dst = Path(dst_path).with_suffix(".jpg")
-    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst = Path(output_path).with_suffix(".jpg")
+    mkdir(dst)
     annotated.save(dst, format="JPEG", quality=95)

@@ -5,6 +5,9 @@ Simple utility library for file management, image processing, and object detecti
 ```bash
 pip install simply-utils
 ```
+```python
+import simply
+```
 
 ---
 
@@ -13,6 +16,7 @@ pip install simply-utils
 ### `general`
 | Function | Description |
 |---|---|
+| [`mkdir`](#mkdir) | Join path parts and create directories |
 | [`get_files`](#get_files) | Find files by extension in a directory or wildcard path |
 | [`read_data`](#read_data) | Read a text file into a list of lines |
 | [`write_data`](#write_data) | Write a flat or nested list to a text file |
@@ -32,14 +36,25 @@ pip install simply-utils
 
 ## general
 
+### `mkdir`
+
+Join path parts and create all directories. If the path looks like a file path (has a suffix),
+the parent directory is created instead.
+
+```python
+simply.mkdir("outputs", "images")       # creates outputs/images
+simply.mkdir("/a/b", "c/d")             # creates /a/b/c/d
+simply.mkdir("outputs/result.jpg")      # creates outputs/
+```
+
+---
+
 ### `get_files`
 
 Find files by extension inside a directory, a single file path, or a wildcard path.
 Defaults to `{".jpg", ".jpeg", ".png", ".bmp"}` when `exts` is not provided.
 
 ```python
-import simply
-
 # Search a directory recursively
 files = simply.get_files("data/images", recursive=True)
 
@@ -202,8 +217,7 @@ detections = simply.read_label(
     fmt_in="norm",
     fmt_out="pixel",
     class_map=CLASS_MAP,
-    image_w=1920,
-    image_h=1080,
+    image_path="image.jpg",
 )
 
 # Skip malformed lines instead of raising
@@ -228,8 +242,7 @@ simply.write_label(
     fmt_in="pixel",
     fmt_out="norm",
     class_map=CLASS_MAP,
-    image_w=1920,
-    image_h=1080,
+    image_path="image.jpg",
 )
 ```
 

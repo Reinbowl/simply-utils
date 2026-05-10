@@ -3,6 +3,28 @@ from pathlib import Path
 
 DEFAULT_EXTS = {".jpg", ".jpeg", ".png", ".bmp"}
 
+def mkdir(*parts: str | Path) -> Path:
+    """Join path parts and create all folders, returning the created directory path.
+
+    If the resulting path looks like a file path (has a suffix), the parent
+    directory is created instead.
+
+    Args:
+        *parts: Path components to join (str or Path).
+
+    Returns:
+        Path to the created directory.
+
+    Example:
+        >>> simply.mkdir("/a/b", "c/d")        # creates and returns /a/b/c/d
+        >>> simply.mkdir("/a/b/file.txt")      # creates /a/b, returns /a/b
+        >>> simply.mkdir("outputs", "images")  # creates outputs/images
+    """
+    path = Path(*parts)
+    folder = path.parent if path.suffix else path
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder
+
 
 def get_files(file_path: str, *, recursive: bool = False, exts: list[str] | str | None = None) -> list[Path]:
     """Return a list of file paths matching the given extensions.
@@ -162,7 +184,7 @@ def _transfer(src: Path, dst: Path, *, mode: str, on_conflict: str) -> Path | No
         elif on_conflict == "auto_suffix":
             dst = _next_available(dst)
 
-    dst.parent.mkdir(parents=True, exist_ok=True)
+    mkdir(dst)
 
     if mode == "symlink":
         dst.symlink_to(src)
@@ -221,8 +243,7 @@ def consolidate_files(
     if on_conflict not in ("skip", "overwrite", "auto_suffix"):
         raise ValueError(f"Invalid on_conflict '{on_conflict}', expected 'skip', 'overwrite' or 'auto_suffix'")
 
-    dst_dir = Path(dst_dir)
-    dst_dir.mkdir(parents=True, exist_ok=True)
+    dst_dir = mkdir(dst_dir)
 
     sources: list[str | Path] = src if isinstance(src, list) else [src]
     created: list[Path] = []
