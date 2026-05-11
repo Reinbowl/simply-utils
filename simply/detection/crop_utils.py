@@ -12,9 +12,13 @@ def _load_image(image: str | Path | Image.Image) -> Image.Image:
 
 
 def _expand_bbox(
-    x1: float, y1: float, x2: float, y2: float,
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
     pad: float,
-    img_w: int, img_h: int,
+    img_w: int,
+    img_h: int,
 ) -> tuple[float, float, float, float]:
     """Expand bbox by pad fraction of its own dimensions, clipped to image bounds."""
     w = x2 - x1
@@ -117,7 +121,9 @@ def crop_bboxes(
             if filter_val not in class_filter:
                 continue
 
-        orig_x1, orig_y1, orig_x2, orig_y2 = (float(v) for v in pixel_det[offset : offset + 4])
+        orig_x1, orig_y1, orig_x2, orig_y2 = (
+            float(v) for v in pixel_det[offset : offset + 4]
+        )
 
         # Expand bbox with padding, clipped to image bounds
         crop_x1, crop_y1, crop_x2, crop_y2 = _expand_bbox(

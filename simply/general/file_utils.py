@@ -3,6 +3,7 @@ from pathlib import Path
 
 DEFAULT_EXTS = {".jpg", ".jpeg", ".png", ".bmp"}
 
+
 def mkdir(*parts: str | Path) -> Path:
     """Join path parts and create all folders, returning the created directory path.
 
@@ -26,7 +27,9 @@ def mkdir(*parts: str | Path) -> Path:
     return folder
 
 
-def get_files(file_path: str, *, recursive: bool = False, exts: list[str] | str | None = None) -> list[Path]:
+def get_files(
+    file_path: str, *, recursive: bool = False, exts: list[str] | str | None = None
+) -> list[Path]:
     """Return a list of file paths matching the given extensions.
 
     Searches a directory, a single file, or a wildcard path for files whose
@@ -34,16 +37,20 @@ def get_files(file_path: str, *, recursive: bool = False, exts: list[str] | str 
     not provided.
 
     Args:
-        file_path: Path to a file, directory, or wildcard pattern (e.g. "data/202601*/images").
-        recursive: If True, search all subdirectories. Required when `file_path` contains wildcards.
-        exts: File extension(s) to match. Accepts a single string (e.g. ".jpg" or "jpg"),
+        file_path: Path to a file, directory, or wildcard pattern
+                   (e.g. "data/202601*/images").
+        recursive: If True, search all subdirectories. Required when
+                   `file_path` contains wildcards.
+        exts: File extension(s) to match. Accepts a single string
+              (e.g. ".jpg" or "jpg"),
               a list of strings, or None to use DEFAULT_EXTS.
 
     Returns:
         List of matching Path objects.
 
     Raises:
-        ValueError: If a wildcard path is used with recursive=False, or if the path does not exist.
+        ValueError: If a wildcard path is used with recursive=False,
+                    or if the path does not exist.
 
     Example:
         >>> get_files("data/images", recursive=True, exts=[".jpg", ".png"])
@@ -51,12 +58,15 @@ def get_files(file_path: str, *, recursive: bool = False, exts: list[str] | str 
         >>> get_files("image.jpg")
     """
     _exts_input = [exts] if isinstance(exts, str) else exts
-    _exts: set[str] = {f".{e.lstrip('.')}" for e in _exts_input} if _exts_input else DEFAULT_EXTS
+    _exts: set[str] = (
+        {f".{e.lstrip('.')}" for e in _exts_input} if _exts_input else DEFAULT_EXTS
+    )
     has_wildcard = any(c in file_path for c in ("*", "?", "["))
 
     if has_wildcard and not recursive:
         raise ValueError(
-            f"Wildcard paths require recursive=True, got recursive=False for: '{file_path}'"
+            "Wildcard paths require recursive=True, got recursive=False"
+            f" for: '{file_path}'"
         )
 
     root = Path(file_path)
@@ -82,8 +92,7 @@ def get_files(file_path: str, *, recursive: bool = False, exts: list[str] | str 
             raise ValueError(f"Base path does not exist: '{root}'")
 
         return [
-            p for p in root.glob(pattern)
-            if p.is_file() and p.suffix.lower() in _exts
+            p for p in root.glob(pattern) if p.is_file() and p.suffix.lower() in _exts
         ]
 
     if not root.exists():
@@ -135,6 +144,7 @@ def write_data(
         >>> write_data("out.txt", ["a", "b", "c"], sep=",")
         >>> write_data("out.txt", [["a", "b"], ["c", "d"]], sep=",")
     """
+
     def to_line(item: object) -> str:
         if isinstance(item, list):
             return (sep if sep is not None else " ").join(str(v) for v in item)
@@ -145,7 +155,11 @@ def write_data(
     if is_nested:
         content = "\n".join(to_line(item) for item in items)
     else:
-        content = sep.join(str(v) for v in items) if sep is not None else "\n".join(str(v) for v in items)
+        content = (
+            sep.join(str(v) for v in items)
+            if sep is not None
+            else "\n".join(str(v) for v in items)
+        )
 
     Path(file_path).write_text(content + "\n", encoding="utf-8")
 
@@ -206,7 +220,8 @@ def consolidate_files(
     structure: str = "flat",
     on_conflict: str = "skip",
 ) -> list[Path]:
-    """Consolidate files from one or more source directories into a destination directory.
+    """Consolidate files from one or more source directories into a
+    destination directory.
 
     Internally uses `get_files` for discovery. Supports symlink or copy transfer,
     flat or mirrored directory structure, and configurable conflict resolution.
@@ -220,7 +235,8 @@ def consolidate_files(
         mode: Transfer method — "symlink" (default) or "copy".
         structure: Output layout — "flat" (all files in dst_dir) or "mirror"
                    (preserves relative structure, each src dir as its own root).
-        on_conflict: Conflict resolution — "skip" (default), "overwrite", or "auto_suffix".
+        on_conflict: Conflict resolution — "skip" (default),
+                     "overwrite", or "auto_suffix".
 
     Returns:
         List of destination Path objects that were successfully written.
@@ -239,9 +255,14 @@ def consolidate_files(
         ... )
     """
     if structure not in ("flat", "mirror"):
-        raise ValueError(f"Invalid structure '{structure}', expected 'flat' or 'mirror'")
+        raise ValueError(
+            f"Invalid structure '{structure}', expected 'flat' or 'mirror'"
+        )
     if on_conflict not in ("skip", "overwrite", "auto_suffix"):
-        raise ValueError(f"Invalid on_conflict '{on_conflict}', expected 'skip', 'overwrite' or 'auto_suffix'")
+        raise ValueError(
+            f"Invalid on_conflict '{on_conflict}', expected"
+            " 'skip', 'overwrite' or 'auto_suffix'"
+        )
 
     dst_dir = mkdir(dst_dir)
 
@@ -260,7 +281,11 @@ def consolidate_files(
                 try:
                     rel = resolved.relative_to(src_root)
                 except ValueError:
-                    rel = file.relative_to(src_root) if file.is_relative_to(src_root) else Path(file.name)
+                    rel = (
+                        file.relative_to(src_root)
+                        if file.is_relative_to(src_root)
+                        else Path(file.name)
+                    )
                 dst = dst_dir / src_root.name / rel
             else:
                 dst = dst_dir / resolved.name

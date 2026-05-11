@@ -11,6 +11,7 @@ def _requires_conversion_args(
     if image_path is None:
         raise ValueError(f"image_path is required for {direction} conversion")
     from PIL import Image
+
     with Image.open(Path(image_path)) as img:
         return img.width, img.height
 
@@ -141,17 +142,19 @@ def read_label(
                    Required when converting between formats.
         image_path: Path to the corresponding image file. Used to infer
                     image dimensions. Required when converting between formats.
-        skip_malformed: If True, silently skip malformed lines. If False, raises ValueError.
+        skip_malformed: If True, silently skip malformed lines.
+                        If False, raises ValueError.
 
     Returns:
         List of detections. Each detection is a list:
-        [class_name, x1, y1, x2, y2] or [class_name, conf, x1, y1, x2, y2] for pixel fmt,
-        [class_id, cx, cy, w, h] or [class_id, conf, cx, cy, w, h] for norm fmt.
+        pixel: [class_name, x1, y1, x2, y2] or [class_name, conf, x1, y1, x2, y2]
+        norm:  [class_id, cx, cy, w, h] or [class_id, conf, cx, cy, w, h]
         Returns an empty list if the file has no detections.
 
     Raises:
         ValueError: On invalid fmt values, missing conversion args, malformed lines
-                    (when skip_malformed=False), or class_id/name not found in class_map.
+                    (when skip_malformed=False), or class_id/name not
+                    found in class_map.
 
     Example:
         >>> detections = read_label("image.txt")
@@ -170,7 +173,9 @@ def read_label(
 
     image_w, image_h = None, None
     if fmt_in != fmt_out:
-        image_w, image_h = _requires_conversion_args(class_map, image_path, f"{fmt_in}→{fmt_out}")
+        image_w, image_h = _requires_conversion_args(
+            class_map, image_path, f"{fmt_in}→{fmt_out}"
+        )
 
     lines = Path(file_path).read_text(encoding="utf-8").splitlines()
     detections: list[list] = []
@@ -236,7 +241,9 @@ def write_label(
 
     image_w, image_h = None, None
     if fmt_in != fmt_out:
-        image_w, image_h = _requires_conversion_args(class_map, image_path, f"{fmt_in}→{fmt_out}")
+        image_w, image_h = _requires_conversion_args(
+            class_map, image_path, f"{fmt_in}→{fmt_out}"
+        )
 
     lines: list[str] = []
     for detection in detections:

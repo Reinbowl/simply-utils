@@ -73,7 +73,8 @@ def load_image_resized(
 
     Args:
         image: File path (str or Path) or a PIL Image object.
-        max_len: Target size for the longest side (or both sides for "stretch" and "pad_only").
+        max_len: Target size for the longest side (or both sides
+                 for "stretch" and "pad_only").
         mode: Resize strategy:
             - "aspect"   — scale longest side to max_len, preserve aspect ratio.
             - "pad"      — same as "aspect", then pad shorter side to make a square
@@ -81,7 +82,8 @@ def load_image_resized(
             - "pad_only" — no resize, pad to max_len x max_len. Ignores downscale_only.
             - "stretch"  — hard resize to max_len x max_len, ignoring aspect ratio.
         pad_color: RGB color used for padding. Defaults to black (0, 0, 0).
-        downscale_only: If True, skip resizing when the image already fits within max_len.
+        downscale_only: If True, skip resizing when the image already
+                        fits within max_len.
             For "aspect": no-op if longest side <= max_len.
             For "pad": no resize, but still pads to a square based on longest side.
             For "stretch": no-op if both sides <= max_len.
@@ -97,11 +99,15 @@ def load_image_resized(
         >>> img = load_image_resized("photo.jpg", 640)
         >>> img = load_image_resized("photo.jpg", 640, mode="pad")
         >>> img = load_image_resized("photo.jpg", 640, mode="pad", downscale_only=True)
-        >>> img = load_image_resized("photo.jpg", 640, mode="pad_only", pad_color=(114, 114, 114))
+        >>> img = load_image_resized(
+        ...     "photo.jpg", 640, mode="pad_only", pad_color=(114, 114, 114)
+        ... )
         >>> img = load_image_resized("photo.jpg", 640, mode="stretch")
     """
     if mode not in ("aspect", "pad", "pad_only", "stretch"):
-        raise ValueError(f"Invalid mode '{mode}', expected 'aspect', 'pad', 'pad_only' or 'stretch'")
+        raise ValueError(
+            f"Invalid mode '{mode}', expected 'aspect', 'pad', 'pad_only' or 'stretch'"
+        )
 
     img = load_image(image)
     w, h = img.size

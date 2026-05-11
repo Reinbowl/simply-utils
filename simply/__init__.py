@@ -11,18 +11,16 @@ from simply.general.file_utils import (
 from simply.general.image_utils import load_image, load_image_resized
 
 __all__ = [
-    # general
-    "mkdir",
-    "get_files",
-    "read_data",
-    "write_data",
     "consolidate_files",
+    "crop_bboxes",
+    "draw_bboxes",
+    "get_files",
     "load_image",
     "load_image_resized",
-    # detection
-    "crop_bboxes",
+    "mkdir",
+    "read_data",
     "read_label",
-    "write_label",
-    "draw_bboxes",
     "viz_bboxes",
+    "write_data",
+    "write_label",
 ]
