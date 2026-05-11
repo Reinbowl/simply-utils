@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "simply-utils"
 version = "0.1.3"
-description = "Simple utility library for file management and object detection workflows."
+description = "Simple utility library for file management, image processing, and object detection workflows."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
