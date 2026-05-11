@@ -1,4 +1,4 @@
-# simply-utils
+# [simply-utils](https://pypi.org/project/simply-utils/)
 
 Simple utility library for file management, image processing, and object detection workflows.
 
