@@ -90,6 +90,9 @@ Write a flat or nested list to a text file.
 ```python
 # Flat list — one item per line
 simply.write_data("out.txt", ["a", "b", "c"])
+# a
+# b
+# c
 
 # Flat list — joined into a single line
 simply.write_data("out.txt", ["a", "b", "c"], sep=",")
