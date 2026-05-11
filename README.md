@@ -30,7 +30,8 @@ import simply
 | [`read_label`](#read_label) | Parse a YOLO-format label file into structured detections |
 | [`write_label`](#write_label) | Write structured detections to a label file |
 | [`draw_bboxes`](#draw_bboxes) | Draw bounding boxes onto an image |
-| [`viz_bboxes`](#viz_bboxes) | End-to-end: load image + label, draw boxes, save as JPEG |
+| [`crop_bboxes`](#crop_bboxes) | Crop bounding boxes from an image, returns crops and relative labels |
+| [`viz_bboxes`](#viz_bboxes) | Draw bounding boxes onto an image and save as JPEG |
 
 ---
 
@@ -281,31 +282,67 @@ annotated = simply.draw_bboxes(
 
 ---
 
+### `crop_bboxes`
+
+Crop bounding boxes from an image and return paired crops and labels.
+Returned labels are relative to each crop's top-left corner `(0, 0)`.
+Confidence is forwarded to the returned label if present in the input detection.
+
+```python
+# Basic crop — all detections
+crops, labels = simply.crop_bboxes("image.jpg", detections)
+
+# With padding and class filter
+crops, labels = simply.crop_bboxes(
+    "image.jpg",
+    detections,
+    class_filter=["car", "person"],
+    pad=0.1,  # expand bbox by 10% on each side, clipped to image bounds
+)
+
+# Iterate crops and labels together
+for crop, label in zip(crops, labels):
+    print(label)  # [class_name, x1, y1, x2, y2] relative to crop
+
+# Full example — read labels then crop
+detections = simply.read_label(
+    "image.txt",
+    fmt_in="norm",
+    fmt_out="pixel",
+    class_map=CLASS_MAP,
+    image_path="image.jpg",
+)
+crops, labels = simply.crop_bboxes("image.jpg", detections, class_filter=["car"], pad=0.1)
+```
+
+---
+
 ### `viz_bboxes`
 
-End-to-end visualisation — loads image and label, draws boxes, saves as JPEG.
+Draw bounding boxes onto an image and save as JPEG. Accepts detections directly —
+use `read_label` beforehand to load from a label file.
 Output suffix is always `.jpg` regardless of input format.
 
 ```python
-# Pixel format labels (default)
-simply.viz_bboxes("image.jpg", "image.txt", "output/image_viz")
+# Basic usage — pixel format detections (default)
+detections = simply.read_label("image.txt")
+simply.viz_bboxes("image.jpg", detections, "output/image_viz")
 
-# Norm format labels
-simply.viz_bboxes(
-    "image.jpg",
+# Norm format labels — read and convert first
+detections = simply.read_label(
     "image.txt",
-    "output/image_viz",
     fmt_in="norm",
+    fmt_out="pixel",
     class_map=CLASS_MAP,
+    image_path="image.jpg",
 )
+simply.viz_bboxes("image.jpg", detections, "output/image_viz")
 
 # Filter classes and custom colors
 simply.viz_bboxes(
     "image.jpg",
-    "image.txt",
+    detections,
     "output/image_viz",
-    fmt_in="norm",
-    class_map=CLASS_MAP,
     class_filter=["car"],
     class_colors={"car": (255, 180, 0)},
 )
@@ -323,6 +360,7 @@ simply/
     detection/
         label_utils.py    # read_label, write_label
         bbox_utils.py     # draw_bboxes, viz_bboxes
+        crop_utils.py     # crop_bboxes
         fonts/
             DejaVuSans.ttf  # place font here for anti-aliased label text
 ```

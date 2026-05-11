@@ -1,4 +1,5 @@
 from simply.detection.bbox_utils import draw_bboxes, viz_bboxes
+from simply.detection.crop_utils import crop_bboxes
 from simply.detection.label_utils import read_label, write_label
 from simply.general.file_utils import (
     consolidate_files,
@@ -19,6 +20,7 @@ __all__ = [
     "load_image",
     "load_image_resized",
     # detection
+    "crop_bboxes",
     "read_label",
     "write_label",
     "draw_bboxes",

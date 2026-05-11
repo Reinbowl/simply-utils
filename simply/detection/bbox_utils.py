@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
-from simply.detection.label_utils import _convert, read_label
+from simply.detection.label_utils import _convert
 from simply.general.file_utils import mkdir
 
 FONT_PATH = Path(__file__).parent / "fonts" / "DejaVuSans.ttf"
@@ -129,8 +129,8 @@ def draw_bboxes(
 
 
 def viz_bboxes(
-    image_path: str | Path,
-    label_path: str | Path,
+    image: str | Path | Image.Image,
+    detections: list[list],
     output_path: str | Path,
     *,
     fmt_in: str = "pixel",
@@ -138,17 +138,16 @@ def viz_bboxes(
     class_colors: dict[str, tuple[int, int, int]] | None = None,
     class_filter: list[str] | None = None,
 ) -> None:
-    """Load an image and its label file, draw bounding boxes, and save the result.
+    """Draw bounding boxes onto an image and save the result.
 
-    End-to-end visualisation helper. Internally calls `read_label` to parse
-    detections and `draw_bboxes` to annotate the image. Output is always saved
-    as a JPEG regardless of the input image format.
+    Accepts detections directly — use `read_label` beforehand to load from a
+    label file. Output is always saved as a JPEG regardless of input image format.
 
     Args:
-        image_path: Path to the source image file.
-        label_path: Path to the detection label .txt file.
+        image: File path (str or Path) or a PIL Image object.
+        detections: List of detections in `fmt_in` format.
         output_path: Path to save the annotated image. Suffix is forced to .jpg.
-        fmt_in: Format of the label file — "pixel" (default) or "norm".
+        fmt_in: Format of the detections — "pixel" (default) or "norm".
         class_map: List of class names where index = class_id.
                    Required when fmt_in="norm".
         class_colors: Optional dict mapping class name to RGB color tuple.
@@ -158,35 +157,23 @@ def viz_bboxes(
         ValueError: If fmt_in is invalid or class_map is missing when fmt_in="norm".
 
     Example:
-        >>> viz_bboxes("image.jpg", "image.txt", "output/image_viz")
-        >>> viz_bboxes(
-        ...     "image.jpg",
+        >>> detections = simply.read_label("image.txt")
+        >>> viz_bboxes("image.jpg", detections, "output/image_viz")
+
+        >>> detections = simply.read_label(
         ...     "image.txt",
-        ...     "output/image_viz",
         ...     fmt_in="norm",
-        ...     class_map=["car", "person"],
-        ...     class_filter=["car"],
+        ...     fmt_out="pixel",
+        ...     class_map=CLASS_MAP,
+        ...     image_path="image.jpg",
         ... )
+        >>> viz_bboxes("image.jpg", detections, "output/image_viz", class_filter=["car"])
     """
-    if fmt_in not in ("pixel", "norm"):
-        raise ValueError(f"Invalid fmt_in '{fmt_in}', expected 'pixel' or 'norm'")
-    if fmt_in == "norm" and class_map is None:
-        raise ValueError("class_map is required when fmt_in='norm'")
-
-    img = Image.open(Path(image_path)).convert("RGB")
-
-    detections = read_label(
-        label_path,
-        fmt_in=fmt_in,
-        fmt_out="pixel",
-        class_map=class_map,
-        image_path=image_path,
-    )
-
     annotated = draw_bboxes(
-        img,
+        image,
         detections,
-        fmt_in="pixel",
+        fmt_in=fmt_in,
+        class_map=class_map,
         class_colors=class_colors,
         class_filter=class_filter,
     )
