@@ -2,7 +2,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from simply.detection.label_utils import _convert, _requires_conversion_args
+from simply.detection.label_utils import _convert
 
 
 def _load_image(image: str | Path | Image.Image) -> Image.Image:
@@ -37,7 +37,6 @@ def crop_bboxes(
     fmt_in: str = "pixel",
     fmt_out: str = "pixel",
     class_map: list[str] | None = None,
-    image_path: str | Path | None = None,
     class_filter: list[str | int] | None = None,
     pad: float = 0.0,
 ) -> tuple[list[Image.Image], list[list]]:
@@ -54,7 +53,6 @@ def crop_bboxes(
         fmt_out: Format of the returned labels — "pixel" (default) or "norm".
         class_map: List of class names where index = class_id.
                    Required when converting between formats.
-        image_path: Path to the image file. Required when converting between formats.
         class_filter: If provided, only crop detections matching these classes.
                       Use class names (str) when fmt_in="pixel",
                       class ids (int) when fmt_in="norm".
@@ -69,20 +67,19 @@ def crop_bboxes(
                   each crop's top-left corner. Pairs with crops by index.
 
     Raises:
-        ValueError: If fmt values are invalid, or class_map/image_path are
-                    missing when format conversion is required.
+        ValueError: If fmt values are invalid, or class_map is missing
+                    when format conversion is required.
 
     Example:
-        >>> detections = simply.read_label("image.txt", fmt_in="norm", fmt_out="pixel",
-        ...                                class_map=CLASS_MAP, image_path="image.jpg")
+        >>> detections = simply.read_label(
+        ...     "image.txt", fmt_in="norm", fmt_out="pixel",
+        ...     class_map=CLASS_MAP, image_path="image.jpg",
+        ... )
         >>> crops, labels = simply.crop_bboxes("image.jpg", detections)
 
         >>> # With padding and class filter
         >>> crops, labels = simply.crop_bboxes(
-        ...     "image.jpg",
-        ...     detections,
-        ...     class_filter=["car", "person"],
-        ...     pad=0.1,
+        ...     "image.jpg", detections, class_filter=["car", "person"], pad=0.1
         ... )
 
         >>> # Iterate crops and labels together
@@ -97,9 +94,11 @@ def crop_bboxes(
     img = _load_image(image)
     img_w, img_h = img.size
 
-    # Validate conversion args upfront if format conversion needed
-    if fmt_in != fmt_out:
-        _requires_conversion_args(class_map, image_path, f"{fmt_in}→{fmt_out}")
+    # Validate class_map upfront if format conversion needed
+    if fmt_in != fmt_out and class_map is None:
+        raise ValueError(
+            f"class_map is required for {fmt_in}→{fmt_out} conversion"
+        )
 
     crops: list[Image.Image] = []
     labels: list[list] = []

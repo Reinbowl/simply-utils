@@ -66,7 +66,10 @@ files = simply.get_files("data", recursive=True, exts=["jpg", ".png"])
 # Single file
 files = simply.get_files("image.jpg")
 
-# Wildcard path — recursive=True required
+# Wildcard path — files in each matched folder only
+files = simply.get_files("data/202601*/images")
+
+# Wildcard path — also search subfolders of each matched directory
 files = simply.get_files("data/202601*/images", recursive=True)
 ```
 

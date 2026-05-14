@@ -49,12 +49,12 @@ def get_files(
         List of matching Path objects.
 
     Raises:
-        ValueError: If a wildcard path is used with recursive=False,
-                    or if the path does not exist.
+        ValueError: If the path or wildcard base path does not exist.
 
     Example:
         >>> get_files("data/images", recursive=True, exts=[".jpg", ".png"])
-        >>> get_files("data/202601*/images", recursive=True)
+        >>> get_files("data/202601*/images")           # files in matched folders only
+        >>> get_files("data/202601*/images", recursive=True)  # include subfolders
         >>> get_files("image.jpg")
     """
     _exts_input = [exts] if isinstance(exts, str) else exts
@@ -62,12 +62,6 @@ def get_files(
         {f".{e.lstrip('.')}" for e in _exts_input} if _exts_input else DEFAULT_EXTS
     )
     has_wildcard = any(c in file_path for c in ("*", "?", "["))
-
-    if has_wildcard and not recursive:
-        raise ValueError(
-            "Wildcard paths require recursive=True, got recursive=False"
-            f" for: '{file_path}'"
-        )
 
     root = Path(file_path)
 
@@ -85,15 +79,23 @@ def get_files(
             else:
                 root_parts.append(part)
 
-        root = Path(*root_parts) if root_parts else Path(".")
-        pattern = str(Path(*wildcard_parts) / "**" / "*") if wildcard_parts else "**/*"
+        base = Path(*root_parts) if root_parts else Path(".")
+        wildcard_pattern = str(Path(*wildcard_parts)) if wildcard_parts else "*"
 
-        if not root.exists():
-            raise ValueError(f"Base path does not exist: '{root}'")
+        if not base.exists():
+            raise ValueError(f"Base path does not exist: '{base}'")
 
-        return [
-            p for p in root.glob(pattern) if p.is_file() and p.suffix.lower() in _exts
-        ]
+        results: list[Path] = []
+        for matched_dir in base.glob(wildcard_pattern):
+            if not matched_dir.is_dir():
+                continue
+            pattern = "**/*" if recursive else "*"
+            results.extend(
+                p
+                for p in matched_dir.glob(pattern)
+                if p.is_file() and p.suffix.lower() in _exts
+            )
+        return results
 
     if not root.exists():
         raise ValueError(f"File path does not exist: '{file_path}'")

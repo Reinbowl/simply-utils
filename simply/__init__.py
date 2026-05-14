@@ -12,11 +12,13 @@ from simply.general.image_utils import load_image, load_image_resized
 
 __all__ = [
     "consolidate_files",
+    # detection
     "crop_bboxes",
     "draw_bboxes",
     "get_files",
     "load_image",
     "load_image_resized",
+    # general
     "mkdir",
     "read_data",
     "read_label",
