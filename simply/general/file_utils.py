@@ -42,8 +42,9 @@ def get_files(
         recursive: If True, search all subdirectories. Required when
                    `file_path` contains wildcards.
         exts: File extension(s) to match. Accepts a single string
-              (e.g. ".jpg" or "jpg"),
-              a list of strings, or None to use DEFAULT_EXTS.
+              (e.g. ".jpg" or "jpg"), a list of strings, "*" to match
+              all files regardless of extension, or None to use
+              DEFAULT_EXTS.
 
     Returns:
         List of matching Path objects.
@@ -56,8 +57,10 @@ def get_files(
         >>> get_files("data/202601*/images")           # files in matched folders only
         >>> get_files("data/202601*/images", recursive=True)  # include subfolders
         >>> get_files("image.jpg")
+        >>> get_files("data", recursive=True, exts="*")  # match all files
     """
-    _exts_input = [exts] if isinstance(exts, str) else exts
+    match_all = exts == "*"
+    _exts_input = [exts] if isinstance(exts, str) and not match_all else exts
     _exts: set[str] = (
         {f".{e.lstrip('.')}" for e in _exts_input} if _exts_input else DEFAULT_EXTS
     )
@@ -66,7 +69,7 @@ def get_files(
     root = Path(file_path)
 
     if not has_wildcard and root.is_file():
-        return [root] if root.suffix.lower() in _exts else []
+        return [root] if match_all or root.suffix.lower() in _exts else []
 
     if has_wildcard:
         parts = root.parts
@@ -93,7 +96,7 @@ def get_files(
             results.extend(
                 p
                 for p in matched_dir.glob(pattern)
-                if p.is_file() and p.suffix.lower() in _exts
+                if p.is_file() and (match_all or p.suffix.lower() in _exts)
             )
         return results
 
@@ -101,7 +104,11 @@ def get_files(
         raise ValueError(f"File path does not exist: '{file_path}'")
 
     pattern = "**/*" if recursive else "*"
-    return [p for p in root.glob(pattern) if p.is_file() and p.suffix.lower() in _exts]
+    return [
+        p
+        for p in root.glob(pattern)
+        if p.is_file() and (match_all or p.suffix.lower() in _exts)
+    ]
 
 
 def read_data(file_path: str | Path) -> list[str]:
@@ -233,12 +240,21 @@ def consolidate_files(
         src: A single source path, wildcard path, or list of paths.
         dst_dir: Destination directory. Created if it does not exist.
         recursive: Passed to `get_files` for subdirectory traversal.
-        exts: File extensions to filter. Passed to `get_files`.
+        exts: File extensions to filter. Passed to `get_files`. Use "*" to
+            match all files regardless of extension.
         mode: Transfer method — "symlink" (default) or "copy".
-        structure: Output layout — "flat" (all files in dst_dir) or "mirror"
-                   (preserves relative structure, each src dir as its own root).
-        on_conflict: Conflict resolution — "skip" (default),
-                     "overwrite", or "auto_suffix".
+        structure: Output layout:
+            "flat" — all files placed directly in dst_dir.
+            "mirror" — relative subdir structure below each src root is
+                preserved and merged across sources (src root name itself
+                is dropped). If two or more sources map a file to the same
+                relative destination path, all of those files are suffixed
+                with their source folder's name to disambiguate.
+        on_conflict: Resolution for files that already exist on disk at the
+            final destination path (e.g. from a previous run) — "skip"
+            (default), "overwrite", or "auto_suffix". This applies after
+            mirror's cross-source name disambiguation, and is unaffected
+            by it.
 
     Returns:
         List of destination Path objects that were successfully written.
@@ -271,26 +287,51 @@ def consolidate_files(
     sources: list[str | Path] = src if isinstance(src, list) else [src]
     created: list[Path] = []
 
+    if structure == "flat":
+        for src_entry in sources:
+            files = get_files(str(src_entry), recursive=recursive, exts=exts)
+            for file in files:
+                resolved = file.resolve()
+                dst = dst_dir / resolved.name
+                result = _transfer(resolved, dst, mode=mode, on_conflict=on_conflict)
+                if result is not None:
+                    created.append(result)
+        return created
+
+    # structure == "mirror"
+    # Pass 1: collect (resolved_file, relative_path, source_name) per source
+    entries: list[tuple[Path, Path, str]] = []
     for src_entry in sources:
         src_str = str(src_entry)
+        src_root = _get_src_root(src_str)
+        source_name = src_root.name
         files = get_files(src_str, recursive=recursive, exts=exts)
-        src_root = _get_src_root(src_str) if structure == "mirror" else None
 
         for file in files:
             resolved = file.resolve()
+            try:
+                rel = resolved.relative_to(src_root)
+            except ValueError:
+                rel = (
+                    file.relative_to(src_root)
+                    if file.is_relative_to(src_root)
+                    else Path(file.name)
+                )
+            entries.append((resolved, rel, source_name))
 
-            if structure == "mirror" and src_root is not None:
-                try:
-                    rel = resolved.relative_to(src_root)
-                except ValueError:
-                    rel = (
-                        file.relative_to(src_root)
-                        if file.is_relative_to(src_root)
-                        else Path(file.name)
-                    )
-                dst = dst_dir / src_root.name / rel
+    # Pass 2: group by relative destination path to detect cross-source conflicts
+    groups: dict[Path, list[tuple[Path, str]]] = {}
+    for resolved, rel, source_name in entries:
+        groups.setdefault(rel, []).append((resolved, source_name))
+
+    for rel, group in groups.items():
+        is_conflict = len(group) > 1
+        for resolved, source_name in group:
+            if is_conflict:
+                rel_suffixed = rel.with_stem(f"{rel.stem}_{source_name}")
+                dst = dst_dir / rel_suffixed
             else:
-                dst = dst_dir / resolved.name
+                dst = dst_dir / rel
 
             result = _transfer(resolved, dst, mode=mode, on_conflict=on_conflict)
             if result is not None:

@@ -71,6 +71,9 @@ files = simply.get_files("data/202601*/images")
 
 # Wildcard path — also search subfolders of each matched directory
 files = simply.get_files("data/202601*/images", recursive=True)
+
+# Match all files regardless of extension
+files = simply.get_files("data", recursive=True, exts="*")
 ```
 
 ---
@@ -127,14 +130,20 @@ simply.consolidate_files(
     recursive=True,
 )
 
-# Multiple sources, mirror structure, copy mode, auto-suffix on conflict
+# Mirror structure — subdirs merged across sources, source root name dropped
+# e.g. batch01/images, batch01/labels, batch02/images, batch02/labels
+#   -> consolidated/images, consolidated/labels
+
+# Mirror with a same-named file in both sources — both files are kept,
+# suffixed with their source folder's name to disambiguate
+# e.g. batch01/images/cat.jpg + batch02/images/cat.jpg
+#   -> consolidated/images/cat_batch01.jpg, consolidated/images/cat_batch02.jpg
 simply.consolidate_files(
     src=["data/batch01", "data/batch02"],
     dst_dir="data/consolidated",
     recursive=True,
-    mode="copy",               # "symlink" (default) | "copy"
-    structure="mirror",        # "flat" (default) | "mirror"
-    on_conflict="auto_suffix", # "skip" (default) | "overwrite" | "auto_suffix"
+    mode="copy",         # "symlink" (default) | "copy"
+    structure="mirror",  # "flat" (default) | "mirror"
 )
 
 # Wildcard source

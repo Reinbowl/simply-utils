@@ -96,9 +96,7 @@ def crop_bboxes(
 
     # Validate class_map upfront if format conversion needed
     if fmt_in != fmt_out and class_map is None:
-        raise ValueError(
-            f"class_map is required for {fmt_in}→{fmt_out} conversion"
-        )
+        raise ValueError(f"class_map is required for {fmt_in}→{fmt_out} conversion")
 
     crops: list[Image.Image] = []
     labels: list[list] = []
