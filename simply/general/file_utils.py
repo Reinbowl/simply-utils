@@ -28,7 +28,10 @@ def mkdir(*parts: str | Path) -> Path:
 
 
 def get_files(
-    file_path: str, *, recursive: bool = False, exts: list[str] | str | None = None
+    file_path: str | Path,
+    *,
+    recursive: bool = False,
+    exts: list[str] | str | None = None,
 ) -> list[Path]:
     """Return a list of file paths matching the given extensions.
 
@@ -38,7 +41,8 @@ def get_files(
 
     Args:
         file_path: Path to a file, directory, or wildcard pattern
-                   (e.g. "data/202601*/images").
+                   (e.g. "data/202601*/images"). Accepts str or Path;
+                   wildcard patterns must be passed as str.
         recursive: If True, search all subdirectories. Required when
                    `file_path` contains wildcards.
         exts: File extension(s) to match. Accepts a single string
@@ -57,6 +61,7 @@ def get_files(
         >>> get_files("data/202601*/images")           # files in matched folders only
         >>> get_files("data/202601*/images", recursive=True)  # include subfolders
         >>> get_files("image.jpg")
+        >>> get_files(Path("data/images"), recursive=True)
         >>> get_files("data", recursive=True, exts="*")  # match all files
     """
     match_all = exts == "*"
@@ -64,7 +69,9 @@ def get_files(
     _exts: set[str] = (
         {f".{e.lstrip('.')}" for e in _exts_input} if _exts_input else DEFAULT_EXTS
     )
-    has_wildcard = any(c in file_path for c in ("*", "?", "["))
+
+    file_path_str = str(file_path)
+    has_wildcard = any(c in file_path_str for c in ("*", "?", "["))
 
     root = Path(file_path)
 
@@ -72,7 +79,7 @@ def get_files(
         return [root] if match_all or root.suffix.lower() in _exts else []
 
     if has_wildcard:
-        parts = root.parts
+        parts = Path(file_path_str).parts
         root_parts, wildcard_parts = [], []
         in_wildcard = False
         for part in parts:

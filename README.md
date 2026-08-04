@@ -74,6 +74,10 @@ files = simply.get_files("data/202601*/images", recursive=True)
 
 # Match all files regardless of extension
 files = simply.get_files("data", recursive=True, exts="*")
+
+# Also accepts a Path object (wildcard patterns must be str)
+from pathlib import Path
+files = simply.get_files(Path("data/images"), recursive=True)
 ```
 
 ---
@@ -133,6 +137,13 @@ simply.consolidate_files(
 # Mirror structure — subdirs merged across sources, source root name dropped
 # e.g. batch01/images, batch01/labels, batch02/images, batch02/labels
 #   -> consolidated/images, consolidated/labels
+simply.consolidate_files(
+    src=["data/batch01", "data/batch02"],
+    dst_dir="data/consolidated",
+    recursive=True,
+    mode="copy",         # "symlink" (default) | "copy"
+    structure="mirror",  # "flat" (default) | "mirror"
+)
 
 # Mirror with a same-named file in both sources — both files are kept,
 # suffixed with their source folder's name to disambiguate
@@ -142,8 +153,17 @@ simply.consolidate_files(
     src=["data/batch01", "data/batch02"],
     dst_dir="data/consolidated",
     recursive=True,
-    mode="copy",         # "symlink" (default) | "copy"
-    structure="mirror",  # "flat" (default) | "mirror"
+    structure="mirror",
+)
+
+# on_conflict still applies for files that already exist on disk
+# (e.g. re-running the same job) — independent of the cross-source naming above
+simply.consolidate_files(
+    src=["data/batch01", "data/batch02"],
+    dst_dir="data/consolidated",
+    recursive=True,
+    structure="mirror",
+    on_conflict="auto_suffix", # "skip" (default) | "overwrite" | "auto_suffix"
 )
 
 # Wildcard source
