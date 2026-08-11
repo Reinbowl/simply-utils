@@ -63,6 +63,7 @@ def get_files(
         >>> get_files("image.jpg")
         >>> get_files(Path("data/images"), recursive=True)
         >>> get_files("data", recursive=True, exts="*")  # match all files
+        >>> get_files("data/image*/camel*")  # wildcard matching files directly
     """
     match_all = exts == "*"
     _exts_input = [exts] if isinstance(exts, str) and not match_all else exts
@@ -96,15 +97,17 @@ def get_files(
             raise ValueError(f"Base path does not exist: '{base}'")
 
         results: list[Path] = []
-        for matched_dir in base.glob(wildcard_pattern):
-            if not matched_dir.is_dir():
-                continue
-            pattern = "**/*" if recursive else "*"
-            results.extend(
-                p
-                for p in matched_dir.glob(pattern)
-                if p.is_file() and (match_all or p.suffix.lower() in _exts)
-            )
+        for matched in base.glob(wildcard_pattern):
+            if matched.is_file():
+                if match_all or matched.suffix.lower() in _exts:
+                    results.append(matched)
+            elif matched.is_dir():
+                pattern = "**/*" if recursive else "*"
+                results.extend(
+                    p
+                    for p in matched.glob(pattern)
+                    if p.is_file() and (match_all or p.suffix.lower() in _exts)
+                )
         return results
 
     if not root.exists():

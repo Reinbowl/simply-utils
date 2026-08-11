@@ -78,6 +78,9 @@ files = simply.get_files("data", recursive=True, exts="*")
 # Also accepts a Path object (wildcard patterns must be str)
 from pathlib import Path
 files = simply.get_files(Path("data/images"), recursive=True)
+
+# Wildcard segments can also match files directly, not just folders
+files = simply.get_files("data/image*/camel*")
 ```
 
 ---
